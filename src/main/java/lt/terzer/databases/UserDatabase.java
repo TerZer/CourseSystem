@@ -16,6 +16,9 @@ import java.util.stream.Collectors;
 
 public class UserDatabase extends AbstractDatabase<User> implements UsernameFilterable<User> {
 
+    public UserDatabase(String url, String database, String table, String username) {
+        super(url, database, table, username);
+    }
 
     public UserDatabase(String url, String database, String table, String username, String password) {
         super(url, database, table, username, password);

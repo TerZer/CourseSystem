@@ -16,6 +16,10 @@ import java.util.stream.Collectors;
 
 public class CourseDatabase extends AbstractDatabase<Course> {
 
+    public CourseDatabase(String url, String database, String table, String username) {
+        super(url, database, table, username);
+    }
+
     public CourseDatabase(String url, String database, String table, String username, String password) {
         super(url, database, table, username, password);
     }

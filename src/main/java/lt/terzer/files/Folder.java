@@ -2,12 +2,9 @@ package lt.terzer.files;
 
 import lt.terzer.sql.data.SerializableList;
 
-import java.util.ArrayList;
-import java.util.List;
-
 public class Folder extends File {
 
-    SerializableList files;
+    private SerializableList files = new SerializableList();
 
     public Folder(int id, String name, SerializableList files) {
         super(id, name);
@@ -16,6 +13,22 @@ public class Folder extends File {
 
     public Folder(String name) {
         super(name);
+    }
+
+    public void setFiles(SerializableList files) {
+        this.files = files;
+    }
+
+    public void addFile(File file){
+        addFile(file.getId());
+    }
+
+    public void addFile(int id){
+        files.add(id);
+    }
+
+    public SerializableList getFiles(){
+        return files;
     }
 
     @Override

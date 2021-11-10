@@ -15,8 +15,17 @@ public class File extends DatabaseSavable {
         this.name = name;
     }
 
+    public String getName() {
+        return name;
+    }
+
     public boolean isFolder(){
         return false;
+    }
+
+    @Override
+    public String toString(){
+        return name;
     }
 
 }

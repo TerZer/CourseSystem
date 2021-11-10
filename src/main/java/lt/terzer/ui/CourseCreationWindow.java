@@ -26,7 +26,6 @@ public class CourseCreationWindow extends JFrame {
         setContentPane(panel1);
         pack();
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
         createButton.addActionListener(e -> {
             if (courseNameField.getText().trim().isEmpty()) {

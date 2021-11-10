@@ -1,122 +1,70 @@
 package lt.terzer.databases;
 
+import lt.terzer.courses.Course;
 import lt.terzer.files.File;
+import lt.terzer.files.Folder;
 import lt.terzer.sql.AbstractDatabase;
+import lt.terzer.sql.data.DatabaseSavable;
+import lt.terzer.sql.data.SerializableList;
+import oracle.ucp.util.Pair;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-//TODO create file database
-/*public class FileDatabase extends AbstractDatabase<File> {
+public class FileDatabase extends AbstractDatabase<File> {
 
+    public FileDatabase(String url, String database, String table, String username) {
+        super(url, database, table, username);
+    }
 
-    public FileDatabase(java.io.File dataFolder, String url, String database, String table, String username, String password) {
-        super(dataFolder, url, database, table, username, password);
+    public FileDatabase(String url, String database, String table, String username, String password) {
+        super(url, database, table, username, password);
     }
 
     @Override
-    protected List<File> retrieveData() {
+    public List<File> getByIds(List<Integer> ids) {
+        if(ids.isEmpty())
+            return new ArrayList<>();
+        Pair<Connection, ResultSet> pair = executeQuery("id in (" + idsToString(ids) + ")");
+        return retrieveData(pair);
+    }
+
+    private List<File> retrieveData(Pair<Connection, ResultSet> pair){
         List<File> list = new ArrayList<>();
-        Connection connection = connect();
-        if(connection == null) {
-            return list;
-        }
-        if(!tableExists()) {
-            return list;
-        }
-        Statement statement = null;
-        ResultSet results = null;
-        try {
-            statement = connection.createStatement();
-            results = statement.executeQuery("SELECT * FROM " + table);
-            while (results.next()) {
-                list.add(new SPPlayer(results.getString(2), UUID.fromString(results.getString(1))
-                        , results.getLong(3), results.getLong(4), results.getLong(5)
-                        , main.getRankHandler().getRankByName(results.getString(6))));
-            }
-            for(File file : list){
-                int i = this.players.indexOf(player);
-                if(i >= 0){
-                    SPPlayer saved = this.players.get(i);
-                    if(saved.isRuntimeCreated()){
-                        saved.setKills(player.getKills()+saved.getKills());
-                        saved.setDeaths(player.getDeaths()+saved.getDeaths());
-                        saved.setTimePlayed(player.getTimePlayed()+saved.getTimePlayed());
-                        saved.setRank(main.getRankHandler().compare(player.getRank(), saved.getRank()));
-                        saved.setRuntimeCreated(false);
+        if(pair.get2nd() != null) {
+            try {
+                while (pair.get2nd().next()) {
+                    if(pair.get2nd().getBoolean(3)) {
+                        list.add(new Folder(pair.get2nd().getInt(1), pair.get2nd().getString(2), SerializableList.deserialize(pair.get2nd().getString(4))));
+                    }
+                    else{
+                        list.add(new File(pair.get2nd().getInt(1), pair.get2nd().getString(2)));
                     }
                 }
-                else{
-                    this.players.add(player);
-                }
-            }
-        } catch (SQLException e) {
-            System.out.println("Could not retrieve data from the database " + e.getMessage());
-        }
-        finally {
-            try {
-                if(statement != null)
-                    statement.close();
             } catch (SQLException e) {
-                e.printStackTrace();
+                System.out.println("Could not retrieve data from the database " + e.getMessage());
             }
-            try {
-                if(results != null)
-                    results.close();
-            } catch (SQLException e){
-                e.printStackTrace();
+            finally {
+                close(pair.get1st());
             }
-            close(connection);
         }
         return list;
     }
 
     @Override
-    protected boolean saveData() {
-        final int batchSize = 1000; //Batch size is important.
-        PreparedStatement ps = null;
-        try {
-            String sql = "INSERT INTO "+table+" (uuid, name, kills, deaths, time_played, rank)" +
-                    " VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE" +
-                    "  kills = VALUES(kills)," +
-                    "  deaths = VALUES(deaths)," +
-                    "  time_played = VALUES(time_played)," +
-                    "  rank = VALUES(rank);";
-            ps = connection.prepareStatement(sql, PreparedStatement.RETURN_GENERATED_KEYS);
+    public boolean remove(List<File> courses) {
+        if(courses.isEmpty())
+            return true;
+        return removeQuery("id in (" + idsToString(courses.stream()
+                .map(DatabaseSavable::getId).collect(Collectors.toList())) + ")");
+    }
 
-            int insertCount=0;
-            for (SPPlayer player : players) {
-                ps.setString(1, player.getUUID().toString());
-                ps.setString(2, player.getName());
-                ps.setLong(3, player.getKills());
-                ps.setLong(4, player.getDeaths());
-                ps.setLong(5, player.getTimePlayed());
-                ps.setString(6, player.getRank().getName());
-                ps.addBatch();
-                if (++insertCount % batchSize == 0) {
-                    ps.executeBatch();
-                }
-            }
-            ps.executeBatch();
-        } catch (SQLException e) {
-            e.printStackTrace();
-            return false;
-        }
-        finally {
-            try {
-                if(ps != null)
-                    ps.close();
-            } catch (SQLException e) {
-                e.printStackTrace();
-            }
-            close(connection);
-        }
-        players.forEach(p -> {
-            p.setRuntimeCreated(false);
-            p.setDirty(false);
-        });
-        return true;
+    @Override
+    public List<File> getAll() {
+        Pair<Connection, ResultSet> pair = executeQuery();
+        return retrieveData(pair);
     }
 
     @Override
@@ -127,13 +75,10 @@ import java.util.List;
             if(connection != null) {
                 statement = connection.createStatement();
                 String sql = "CREATE TABLE IF NOT EXISTS "+table+" " +
-                        "(uuid VARCHAR(36) NOT NULL UNIQUE, " +
-                        " name VARCHAR(255) NOT NULL UNIQUE, " +
-                        " kills BIGINT, " +
-                        " deaths BIGINT, " +
-                        " time_played BIGINT," +
-                        " rank TEXT NOT NULL " +
-                        " )";
+                        "(id INT AUTO_INCREMENT PRIMARY KEY," +
+                        " name TEXT NOT NULL, " +
+                        " folder BOOL NOT NULL, " +
+                        " files TEXT)";
                 statement.executeUpdate(sql);
                 return true;
             }
@@ -152,4 +97,50 @@ import java.util.List;
         }
         return false;
     }
-}*/
+
+    @Override
+    protected boolean saveData(Connection connection, List<File> files) {
+        try {
+            for (File file : files) {
+                Statement stmt = connection.createStatement();
+                if(file.getId() == -1){
+                    stmt.executeUpdate(
+                            "INSERT INTO "+table+" (name, folder, files) "
+                                    + "values ("
+                                    + "'"+file.getName()+"',"
+                                    + ""+file.isFolder()+","
+                                    + "'"+(file.isFolder() ? ((Folder) file).getFiles().serialize() : null)+"'"
+                                    + ");",
+                            Statement.RETURN_GENERATED_KEYS);
+                }
+                else{
+                    stmt.executeUpdate(
+                            "INSERT INTO "+table+" (id, name, folder, files) "
+                                    + "values ("
+                                    + "'"+file.getId()+"',"
+                                    + "'"+file.getName()+"',"
+                                    + ""+file.isFolder()+","
+                                    + "'"+(file.isFolder() ? ((Folder) file).getFiles().serialize() : null)+"'"
+                                    + ") ON DUPLICATE KEY UPDATE"
+                                    + "  id = VALUES(id),"
+                                    + "  name = VALUES(name),"
+                                    + "  folder = VALUES(folder),"
+                                    + "  files = VALUES(files);",
+                            Statement.RETURN_GENERATED_KEYS);
+                }
+                ResultSet rs = stmt.getGeneratedKeys();
+                if (rs.next()) {
+                    int id = rs.getInt(1);
+                    file.setId(id);
+                } else {
+                    System.out.println("Could not receive ID!");
+                }
+                stmt.close();
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+}

@@ -17,6 +17,10 @@ public abstract class AbstractDatabase<T extends Savable> implements Database<T>
     //private DataSaver saver = null;
     private boolean broken;
 
+    public AbstractDatabase(String url, String database, String table, String username){
+        this(url, database, table, username, null);
+    }
+
     public AbstractDatabase(String url, String database, String table, String username, String password){
         database = database.endsWith("/") ? StringUtils.removeEnd(database, "/") : database;
         if(url.startsWith("jdbc:mysql://")) {
@@ -103,6 +107,8 @@ public abstract class AbstractDatabase<T extends Savable> implements Database<T>
     }
 
     protected boolean removeQuery(String where){
+        if(!tableExists())
+            createTable();
         Connection connection = connect();
         if(where == null || where.trim().equals(""))
             return false;
@@ -120,10 +126,14 @@ public abstract class AbstractDatabase<T extends Savable> implements Database<T>
     }
 
     protected Pair<Connection, ResultSet> executeQuery(){
+        if(!tableExists())
+            createTable();
         return executeQuery(null);
     }
 
     protected Pair<Connection, ResultSet> executeQuery(String where){
+        if(!tableExists())
+            createTable();
         Connection connection = connect();
         if(connection == null) {
             return null;
