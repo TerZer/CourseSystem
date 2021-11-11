@@ -132,8 +132,6 @@ public class FileDatabase extends AbstractDatabase<File> {
                 if (rs.next()) {
                     int id = rs.getInt(1);
                     file.setId(id);
-                } else {
-                    System.out.println("Could not receive ID!");
                 }
                 stmt.close();
             }

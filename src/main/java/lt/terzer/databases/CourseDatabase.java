@@ -130,8 +130,6 @@ public class CourseDatabase extends AbstractDatabase<Course> {
                 if (rs.next()) {
                     int id = rs.getInt(1);
                     course.setId(id);
-                } else {
-                    System.out.println("Could not receive ID!");
                 }
                 stmt.close();
             }

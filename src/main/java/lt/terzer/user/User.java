@@ -91,6 +91,11 @@ public class User extends DatabaseSavable {
         setDirty();
     }
 
+    public void removeAccessibleCourse(Integer id) {
+        accessibleCourses.remove(id);
+        setDirty();
+    }
+
     public boolean isCourseCreator() {
         return courseCreator;
     }
@@ -138,15 +143,11 @@ public class User extends DatabaseSavable {
 
     @Override
     public String toString() {
-        return "[ username=" + username + " " +
-                "name=" + name + " " +
-                "surname=" + surname + " " +
-                "contactInformation=" + contactInformation + " " +
-                "password=" + password + " " +
-                "editableCourses=" + editableCourses + " " +
-                "accessibleCourses=" + accessibleCourses + " " +
-                "courseCreator=" + courseCreator + " " +
-                "admin=" + admin + " " +
-                "company=" + isCompany() + " ]";
+        return name + " " + surname;
+    }
+
+    public void removeEditableCourse(Integer id) {
+        editableCourses.remove(id);
+        setDirty();
     }
 }

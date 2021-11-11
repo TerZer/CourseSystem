@@ -36,4 +36,7 @@ public class Folder extends File {
         return true;
     }
 
+    public void removeFile(Integer id) {
+        files.remove(id);
+    }
 }

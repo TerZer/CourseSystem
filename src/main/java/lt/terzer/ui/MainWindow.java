@@ -46,6 +46,7 @@ public class MainWindow extends JFrame {
             model.addElement(course);
         }
         courseJList.setModel(model);
+        tree1.setCellRenderer(new FileTreeCellRenderer());
 
         courseJList.addListSelectionListener(e -> {
             if (courseJList.getSelectedValue() != null) {
@@ -97,6 +98,7 @@ public class MainWindow extends JFrame {
                             Main.getFileDatabase().save(folder);
                         }
                         Main.getCourseDatabase().save(course);
+                        tree1.setModel(createNodes(course)); //TODO add or remove node
                     });
                     fileCreate.addActionListener(e1 -> {
                         String name = JOptionPane.showInputDialog("Write name of a file:");
@@ -114,11 +116,17 @@ public class MainWindow extends JFrame {
                             Main.getFileDatabase().save(folder);
                         }
                         Main.getCourseDatabase().save(course);
+                        tree1.setModel(createNodes(course)); //TODO add or remove node
                     });
                     delete.addActionListener(e1 -> {
                         if (path != null) {
-                            File file = (File) ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
-                            //TODO deletion
+                            DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
+                            DefaultMutableTreeNode parent = (DefaultMutableTreeNode) node.getParent();
+
+                            File file = (File) node.getUserObject();
+                            Folder folder = (Folder) parent.getUserObject();
+                            removeFile(folder, file);
+                            tree1.setModel(createNodes(course)); //TODO add or remove node
                         }
                     });
                     if (path != null) {
@@ -179,9 +187,13 @@ public class MainWindow extends JFrame {
             public void mousePressed(MouseEvent e) {
                 if (SwingUtilities.isRightMouseButton(e)) {
                     int index = courseJList.locationToIndex(e.getPoint());
-                    if (courseJList.getSelectedIndex() != index) {
-                        courseJList.setSelectedIndex(index);
-                        courseJList.setValueIsAdjusting(false);
+                    if (index > -1 && courseJList.getCellBounds(index, index).contains(e.getPoint())) {
+                        if (courseJList.getSelectedIndex() != index) {
+                            courseJList.setSelectedIndex(index);
+                            courseJList.setValueIsAdjusting(false);
+                        }
+                    } else {
+                        courseJList.clearSelection();
                     }
                     JPopupMenu menu = new JPopupMenu();
                     if (courseJList.getSelectedValue() == null && (user.isCourseCreator() || user.isAdmin())) {
@@ -200,10 +212,17 @@ public class MainWindow extends JFrame {
                         menu.show(courseJList, e.getPoint().x, e.getPoint().y);
                     } else {
                         if (user.getEditableCourses().contains(((Course) courseJList.getSelectedValue()).getId()) || user.isAdmin()) {
-                            JMenuItem itemRemove = new JMenuItem("Remove");
+                            JMenuItem itemRemove = new JMenuItem("Remove course");
+                            JMenuItem addUsers = new JMenuItem("Add users...");
+                            JMenuItem removeUsers = new JMenuItem("Remove users...");
                             itemRemove.addActionListener(e1 -> {
                                 Course course = (Course) courseJList.getSelectedValue();
                                 Main.getCourseDatabase().remove(course);
+                                Main.getUserDatabase().getAll().forEach(u -> {
+                                    u.removeAccessibleCourse(course.getId());
+                                    u.removeEditableCourse(course.getId());
+                                    Main.getUserDatabase().save(u);
+                                });
                                 DefaultListModel<Course> m = new DefaultListModel<>();
                                 List<Course> courses1 = Main.getCourseDatabase().getByIds(user.getAccessibleCourses());
                                 for (Course c : courses1) {
@@ -211,6 +230,24 @@ public class MainWindow extends JFrame {
                                 }
                                 courseJList.setModel(m);
                             });
+                            addUsers.addActionListener(e1 -> {
+                                List<User> users = Main.getUserDatabase().getAll();
+                                users.removeIf(u -> u.getAccessibleCourses().contains(((Course) courseJList.getSelectedValue()).getId()) || u.getId() == user.getId());
+                                new UserSelectWindow(users, users1 -> {
+                                    users1.forEach(u -> u.addAccessibleCourse(((Course) courseJList.getSelectedValue()).getId()));
+                                    Main.getUserDatabase().save(users1);
+                                });
+                            });
+                            removeUsers.addActionListener(e1 -> {
+                                List<User> users = Main.getUserDatabase().getAll();
+                                users.removeIf(u -> !u.getAccessibleCourses().contains(((Course) courseJList.getSelectedValue()).getId()) || u.getId() == user.getId());
+                                new UserSelectWindow(users, users1 -> {
+                                    users1.forEach(u -> u.removeAccessibleCourse(((Course) courseJList.getSelectedValue()).getId()));
+                                    Main.getUserDatabase().save(users1);
+                                });
+                            });
+                            menu.add(addUsers);
+                            menu.add(removeUsers);
                             menu.add(itemRemove);
                             menu.show(courseJList, e.getPoint().x, e.getPoint().y);
                         }
@@ -218,6 +255,18 @@ public class MainWindow extends JFrame {
                 }
             }
         });
+    }
+
+    private void removeFile(Folder parent, File file) {
+        if (file.isFolder()) {
+            for (File f : Main.getFileDatabase().getByIds(((Folder) file).getFiles())) {
+                removeFile((Folder) file, f);
+            }
+        }
+        if (parent != null) {
+            parent.removeFile(file.getId());
+        }
+        Main.getFileDatabase().remove(file);
     }
 
     private DefaultTreeModel createNodes(Course course) {
