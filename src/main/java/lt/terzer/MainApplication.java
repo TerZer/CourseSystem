@@ -7,7 +7,7 @@ import lt.terzer.ui.LoginWindow;
 
 import javax.swing.*;
 
-public class Main {
+public class MainApplication {
 
     private static UserDatabase userDatabase = new UserDatabase("localhost:3306", "test", "users", "root", "checkPass123");
     private static CourseDatabase courseDatabase = new CourseDatabase("localhost:3306", "test", "courses", "root", "checkPass123");

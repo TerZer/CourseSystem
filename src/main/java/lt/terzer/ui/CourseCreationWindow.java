@@ -3,10 +3,8 @@ package lt.terzer.ui;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
-import lt.terzer.Main;
+import lt.terzer.MainApplication;
 import lt.terzer.courses.Course;
-import lt.terzer.databases.CourseDatabase;
-import lt.terzer.databases.UserDatabase;
 import lt.terzer.user.User;
 
 import javax.swing.*;
@@ -37,10 +35,10 @@ public class CourseCreationWindow extends JFrame {
                 return;
             }
             Course course = new Course(courseNameField.getText(), courseDescriptionField.getText());
-            Main.getCourseDatabase().save(course);
+            MainApplication.getCourseDatabase().save(course);
             user.addAccessibleCourse(course.getId());
             user.addEditableCourse(course.getId());
-            Main.getUserDatabase().save(user);
+            MainApplication.getUserDatabase().save(user);
             courseCreateListener.onCreated();
             dispose();
         });

@@ -3,8 +3,7 @@ package lt.terzer.ui;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
-import lt.terzer.Main;
-import lt.terzer.databases.UserDatabase;
+import lt.terzer.MainApplication;
 import lt.terzer.user.Company;
 import lt.terzer.user.User;
 
@@ -62,16 +61,16 @@ public class RegisterWindow extends JFrame {
 
             String admin = new String(adminField.getPassword());
 
-            User user = Main.getUserDatabase().getByUsername(usernameField.getText());
+            User user = MainApplication.getUserDatabase().getByUsername(usernameField.getText());
             if (user != null) {
                 JOptionPane.showMessageDialog(null, "Username already taken!", "Register", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             if (companyCheckBox.isSelected()) {
-                Main.getUserDatabase().save(new Company(companyNameField.getText(), usernameField.getText(), nameField.getText(), surnameField.getText(), contactInfoField.getText(), password, false, admin.equalsIgnoreCase("pass123")));
+                MainApplication.getUserDatabase().save(new Company(companyNameField.getText(), usernameField.getText(), nameField.getText(), surnameField.getText(), contactInfoField.getText(), password, false, admin.equalsIgnoreCase("pass123")));
             } else {
-                Main.getUserDatabase().save(new User(usernameField.getText(), nameField.getText(), surnameField.getText(), contactInfoField.getText(), password, false, admin.equalsIgnoreCase("pass123")));
+                MainApplication.getUserDatabase().save(new User(usernameField.getText(), nameField.getText(), surnameField.getText(), contactInfoField.getText(), password, false, admin.equalsIgnoreCase("pass123")));
             }
             new LoginWindow();
             dispose();

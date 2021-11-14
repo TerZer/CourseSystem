@@ -2,7 +2,7 @@ package lt.terzer.ui;
 
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
-import lt.terzer.Main;
+import lt.terzer.MainApplication;
 import lt.terzer.courses.Course;
 import lt.terzer.files.File;
 import lt.terzer.files.Folder;
@@ -41,7 +41,7 @@ public class MainWindow extends JFrame {
         coursePanel.setVisible(false);
 
         DefaultListModel<Course> model = new DefaultListModel<>();
-        List<Course> courses = Main.getCourseDatabase().getByIds(user.getAccessibleCourses());
+        List<Course> courses = MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
         for (Course course : courses) {
             model.addElement(course);
         }
@@ -88,16 +88,16 @@ public class MainWindow extends JFrame {
                         Folder folder;
                         if (path == null) {
                             folder = new Folder(name);
-                            Main.getFileDatabase().save(folder);
+                            MainApplication.getFileDatabase().save(folder);
                             course.addFileId(folder.getId());
                         } else {
                             folder = (Folder) ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
                             Folder nf = new Folder(name);
-                            Main.getFileDatabase().save(nf);
+                            MainApplication.getFileDatabase().save(nf);
                             folder.addFile(nf);
-                            Main.getFileDatabase().save(folder);
+                            MainApplication.getFileDatabase().save(folder);
                         }
-                        Main.getCourseDatabase().save(course);
+                        MainApplication.getCourseDatabase().save(course);
                         tree1.setModel(createNodes(course)); //TODO add or remove node
                     });
                     fileCreate.addActionListener(e1 -> {
@@ -106,16 +106,16 @@ public class MainWindow extends JFrame {
                             return;
                         if (path == null) {
                             File file = new File(name);
-                            Main.getFileDatabase().save(file);
+                            MainApplication.getFileDatabase().save(file);
                             course.addFileId(file.getId());
                         } else {
                             Folder folder = (Folder) ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
                             File nf = new File(name);
-                            Main.getFileDatabase().save(nf);
+                            MainApplication.getFileDatabase().save(nf);
                             folder.addFile(nf);
-                            Main.getFileDatabase().save(folder);
+                            MainApplication.getFileDatabase().save(folder);
                         }
-                        Main.getCourseDatabase().save(course);
+                        MainApplication.getCourseDatabase().save(course);
                         tree1.setModel(createNodes(course)); //TODO add or remove node
                     });
                     delete.addActionListener(e1 -> {
@@ -201,7 +201,7 @@ public class MainWindow extends JFrame {
                         itemCreate.addActionListener(e1 -> {
                             new CourseCreationWindow(user, () -> {
                                 DefaultListModel<Course> model = new DefaultListModel<>();
-                                List<Course> courses = Main.getCourseDatabase().getByIds(user.getAccessibleCourses());
+                                List<Course> courses = MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
                                 for (Course course : courses) {
                                     model.addElement(course);
                                 }
@@ -217,33 +217,33 @@ public class MainWindow extends JFrame {
                             JMenuItem removeUsers = new JMenuItem("Remove users...");
                             itemRemove.addActionListener(e1 -> {
                                 Course course = (Course) courseJList.getSelectedValue();
-                                Main.getCourseDatabase().remove(course);
-                                Main.getUserDatabase().getAll().forEach(u -> {
+                                MainApplication.getCourseDatabase().remove(course);
+                                MainApplication.getUserDatabase().getAll().forEach(u -> {
                                     u.removeAccessibleCourse(course.getId());
                                     u.removeEditableCourse(course.getId());
-                                    Main.getUserDatabase().save(u);
+                                    MainApplication.getUserDatabase().save(u);
                                 });
                                 DefaultListModel<Course> m = new DefaultListModel<>();
-                                List<Course> courses1 = Main.getCourseDatabase().getByIds(user.getAccessibleCourses());
+                                List<Course> courses1 = MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
                                 for (Course c : courses1) {
                                     m.addElement(c);
                                 }
                                 courseJList.setModel(m);
                             });
                             addUsers.addActionListener(e1 -> {
-                                List<User> users = Main.getUserDatabase().getAll();
+                                List<User> users = MainApplication.getUserDatabase().getAll();
                                 users.removeIf(u -> u.getAccessibleCourses().contains(((Course) courseJList.getSelectedValue()).getId()) || u.getId() == user.getId());
                                 new UserSelectWindow(users, users1 -> {
                                     users1.forEach(u -> u.addAccessibleCourse(((Course) courseJList.getSelectedValue()).getId()));
-                                    Main.getUserDatabase().save(users1);
+                                    MainApplication.getUserDatabase().save(users1);
                                 });
                             });
                             removeUsers.addActionListener(e1 -> {
-                                List<User> users = Main.getUserDatabase().getAll();
+                                List<User> users = MainApplication.getUserDatabase().getAll();
                                 users.removeIf(u -> !u.getAccessibleCourses().contains(((Course) courseJList.getSelectedValue()).getId()) || u.getId() == user.getId());
                                 new UserSelectWindow(users, users1 -> {
                                     users1.forEach(u -> u.removeAccessibleCourse(((Course) courseJList.getSelectedValue()).getId()));
-                                    Main.getUserDatabase().save(users1);
+                                    MainApplication.getUserDatabase().save(users1);
                                 });
                             });
                             menu.add(addUsers);
@@ -259,18 +259,18 @@ public class MainWindow extends JFrame {
 
     private void removeFile(Folder parent, File file) {
         if (file.isFolder()) {
-            for (File f : Main.getFileDatabase().getByIds(((Folder) file).getFiles())) {
+            for (File f : MainApplication.getFileDatabase().getByIds(((Folder) file).getFiles())) {
                 removeFile((Folder) file, f);
             }
         }
         if (parent != null) {
             parent.removeFile(file.getId());
         }
-        Main.getFileDatabase().remove(file);
+        MainApplication.getFileDatabase().remove(file);
     }
 
     private DefaultTreeModel createNodes(Course course) {
-        List<File> files = Main.getFileDatabase().getByIds(course.getFilesIds());
+        List<File> files = MainApplication.getFileDatabase().getByIds(course.getFilesIds());
         DefaultMutableTreeNode root = new DefaultMutableTreeNode();
         for (File file : files) {
             addNodes(root, file);
@@ -281,7 +281,7 @@ public class MainWindow extends JFrame {
     private void addNodes(DefaultMutableTreeNode root, File file) {
         DefaultMutableTreeNode node = new DefaultMutableTreeNode(file);
         if (file.isFolder()) {
-            List<File> files = Main.getFileDatabase().getByIds(((Folder) file).getFiles());
+            List<File> files = MainApplication.getFileDatabase().getByIds(((Folder) file).getFiles());
             files.forEach(f -> addNodes(node, f));
         }
         root.add(node);
@@ -298,7 +298,7 @@ public class MainWindow extends JFrame {
                 public void actionPerformed(ActionEvent e) {
                     new CourseCreationWindow(user, () -> {
                         DefaultListModel<Course> model = new DefaultListModel<>();
-                        List<Course> courses = Main.getCourseDatabase().getByIds(user.getAccessibleCourses());
+                        List<Course> courses = MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
                         for (Course course : courses) {
                             model.addElement(course);
                         }
@@ -314,7 +314,7 @@ public class MainWindow extends JFrame {
         Action actionSignout = new AbstractAction("Sign out") {
             public void actionPerformed(ActionEvent e) {
                 dispose();
-                new LoginWindow();
+                new LoginWindow(); //TODO change
             }
         };
         item = mFile.add(actionSignout);

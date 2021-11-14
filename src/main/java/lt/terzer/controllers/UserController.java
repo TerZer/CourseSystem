@@ -2,6 +2,7 @@ package lt.terzer.controllers;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import lt.terzer.courses.Course;
 import lt.terzer.databases.UserDatabase;
 import lt.terzer.user.User;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,26 @@ public class UserController {
         }
         return gson.toJson(user);
     }
+
+    @PutMapping("/{id}")
+    public String updateUser(Authentication authentication, @RequestBody String userString, @PathVariable int id){
+        User user = userDatabase.getByUsername(authentication.getName());
+        if(user.isCourseCreator() || user.isAdmin()) {
+            User user1 = gson.fromJson(userString, User.class);
+            if (user1 == null) {
+                return "Error";
+            }
+            if (user1.getId() != id) {
+                return "Error";
+            }
+            userDatabase.save(user1);
+            return "Success";
+        }
+        else{
+            return "Error";
+        }
+    }
+
 
     @GetMapping("")
     public String user(Authentication authentication) {

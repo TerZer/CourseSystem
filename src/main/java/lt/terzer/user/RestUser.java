@@ -2,11 +2,19 @@ package lt.terzer.user;
 
 public class RestUser {
 
-    private final String token;
-    private final String user;
+    private String token;
+    private String user;
 
-    public RestUser(String token, String user){
+    public RestUser(String user, String token){
         this.token = token;
+        this.user = user;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public void setUser(String user) {
         this.user = user;
     }
 

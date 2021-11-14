@@ -11,17 +11,17 @@ public class BeanConfig {
 
     @Bean
     public UserDatabase userDatabase() {
-        return new UserDatabase("localhost:3306", "test", "users", "root");
+        return new UserDatabase("localhost:3306", "test", "users", "root", "checkPass123");
     }
 
     @Bean
     public CourseDatabase courseDatabase() {
-        return new CourseDatabase("localhost:3306", "test", "courses", "root");
+        return new CourseDatabase("localhost:3306", "test", "courses", "root", "checkPass123");
     }
 
     @Bean
     public FileDatabase fileDatabase() {
-        return new FileDatabase("localhost:3306", "test", "files", "root");
+        return new FileDatabase("localhost:3306", "test", "files", "root", "checkPass123");
     }
 
 }
