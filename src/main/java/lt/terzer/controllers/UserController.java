@@ -46,16 +46,16 @@ public class UserController {
         if(user.isCourseCreator() || user.isAdmin()) {
             User user1 = gson.fromJson(userString, User.class);
             if (user1 == null) {
-                return "Error";
+                return gson.toJson("Error");
             }
             if (user1.getId() != id) {
-                return "Error";
+                return gson.toJson("Error");
             }
             userDatabase.save(user1);
-            return "Success";
+            return gson.toJson("Success");
         }
         else{
-            return "Error";
+            return gson.toJson("Error");
         }
     }
 

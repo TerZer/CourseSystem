@@ -25,17 +25,17 @@ public class RegisterController {
     public @ResponseBody String register(@RequestBody String userString) {
         User user = gson.fromJson(userString, User.class);
         if(user == null){
-            return "Error";
+            return gson.toJson("Error");
         }
         if(user.getId() != -1){
-            return "Error";
+            return gson.toJson("Error");
         }
         User contains = userDatabase.getByUsername(user.getUsername());
         if(contains != null){
-            return "Error";
+            return gson.toJson("Error");
         }
         userDatabase.save(user);
-        return "Success";
+        return gson.toJson("Success");
     }
 
 }

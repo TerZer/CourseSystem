@@ -34,26 +34,26 @@ public class FileController {
     public @ResponseBody String file(Authentication authentication, @RequestBody String fileString) {
         File file = gson.fromJson(fileString, File.class);
         if (file == null) {
-            return "Error";
+            return gson.toJson("Error");
         }
         if (file.getId() != -1) {
-            return "Error";
+            return gson.toJson("Error");
         }
         fileDatabase.save(file);
-        return "Success";
+        return gson.toJson("Success");
     }
 
     @PutMapping("/{id}")
     public @ResponseBody String file(Authentication authentication, @RequestBody String fileString, @PathVariable int id) {
         File file = gson.fromJson(fileString, File.class);
         if (file == null) {
-            return "Error";
+            return gson.toJson("Error");
         }
         if (file.getId() != id) {
-            return "Error";
+            return gson.toJson("Error");
         }
         fileDatabase.save(file);
-        return "Success";
+        return gson.toJson("Success");
     }
 
     @GetMapping("")

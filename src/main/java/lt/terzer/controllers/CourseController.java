@@ -43,16 +43,16 @@ public class CourseController {
         if(user.isCourseCreator() || user.isAdmin()) {
             Course course = gson.fromJson(courseString, Course.class);
             if (course == null) {
-                return "Error";
+                return gson.toJson("Error");
             }
             if (course.getId() != -1) {
-                return "Error";
+                return gson.toJson("Error");
             }
             courseDatabase.save(course);
             return "Success";
         }
         else{
-            return "Error";
+            return gson.toJson("Error");
         }
     }
 
@@ -62,16 +62,16 @@ public class CourseController {
         if(user.getEditableCourses().contains(id) || user.isAdmin()) {
             Course course = gson.fromJson(courseString, Course.class);
             if (course == null) {
-                return "Error";
+                return gson.toJson("Error");
             }
             if (course.getId() != id) {
-                return "Error";
+                return gson.toJson("Error");
             }
             courseDatabase.save(course);
-            return "Success";
+            return gson.toJson("Success");
         }
         else{
-            return "Error";
+            return gson.toJson("Error");
         }
     }
 
