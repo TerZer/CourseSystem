@@ -3,6 +3,7 @@ package lt.terzer.ui;
 import com.intellij.uiDesigner.core.GridConstraints;
 import com.intellij.uiDesigner.core.GridLayoutManager;
 import com.intellij.uiDesigner.core.Spacer;
+import lt.terzer.MainApplication;
 import lt.terzer.databases.UserDatabase;
 import lt.terzer.user.User;
 
@@ -18,9 +19,6 @@ public class LoginWindow extends JFrame {
     private JPasswordField passwordField;
     private JButton signInButton;
     private JButton signUpButton;
-
-    private UserDatabase userDatabase = new UserDatabase("localhost:3306", "test", "users", "root", "checkPass123");
-
 
     public LoginWindow() {
         super("Login");
@@ -58,7 +56,7 @@ public class LoginWindow extends JFrame {
             return;
         }
 
-        User user = userDatabase.getByUsername(usernameField.getText());
+        User user = MainApplication.getUserDatabase().getByUsername(usernameField.getText());
         if (user != null) {
             if (user.getPassword().equals(password)) {
                 new MainWindow(user);

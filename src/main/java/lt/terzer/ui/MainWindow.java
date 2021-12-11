@@ -86,47 +86,64 @@ public class MainWindow extends JFrame {
                         if (name == null)
                             return;
                         Folder folder;
+                        DefaultMutableTreeNode root;
                         if (path == null) {
                             folder = new Folder(name);
                             MainApplication.getFileDatabase().save(folder);
                             course.addFileId(folder.getId());
+                            root = (DefaultMutableTreeNode) tree1.getModel().getRoot();
                         } else {
                             folder = (Folder) ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
                             Folder nf = new Folder(name);
                             MainApplication.getFileDatabase().save(nf);
                             folder.addFile(nf);
                             MainApplication.getFileDatabase().save(folder);
+                            root = (DefaultMutableTreeNode) path.getLastPathComponent();
+                            folder = nf;
                         }
                         MainApplication.getCourseDatabase().save(course);
-                        tree1.setModel(createNodes(course)); //TODO add or remove node
+                        DefaultMutableTreeNode node = new DefaultMutableTreeNode(folder);
+                        root.add(node);
+                        DefaultTreeModel model = ((DefaultTreeModel)tree1.getModel());
+                        model.nodesWereInserted(root, new int[] { model.getIndexOfChild(root, node) });
                     });
                     fileCreate.addActionListener(e1 -> {
                         String name = JOptionPane.showInputDialog("Write name of a file:");
                         if (name == null)
                             return;
+                        File file;
+                        DefaultMutableTreeNode root;
                         if (path == null) {
-                            File file = new File(name);
+                            file = new File(name);
                             MainApplication.getFileDatabase().save(file);
                             course.addFileId(file.getId());
+                            root = (DefaultMutableTreeNode) tree1.getModel().getRoot();
                         } else {
                             Folder folder = (Folder) ((DefaultMutableTreeNode) path.getLastPathComponent()).getUserObject();
                             File nf = new File(name);
                             MainApplication.getFileDatabase().save(nf);
                             folder.addFile(nf);
                             MainApplication.getFileDatabase().save(folder);
+                            file = nf;
+                            root = (DefaultMutableTreeNode) path.getLastPathComponent();
                         }
                         MainApplication.getCourseDatabase().save(course);
-                        tree1.setModel(createNodes(course)); //TODO add or remove node
+                        DefaultMutableTreeNode node = new DefaultMutableTreeNode(file);
+                        root.add(node);
+                        DefaultTreeModel model = ((DefaultTreeModel)tree1.getModel());
+                        model.nodesWereInserted(root, new int[] { model.getIndexOfChild(root, node) });
                     });
                     delete.addActionListener(e1 -> {
                         if (path != null) {
                             DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
                             DefaultMutableTreeNode parent = (DefaultMutableTreeNode) node.getParent();
-
                             File file = (File) node.getUserObject();
                             Folder folder = (Folder) parent.getUserObject();
                             removeFile(folder, file);
-                            tree1.setModel(createNodes(course)); //TODO add or remove node
+                            DefaultTreeModel model = ((DefaultTreeModel)tree1.getModel());
+                            int[] indices = new int[] { model.getIndexOfChild(parent, node) };
+                            parent.remove(node);
+                            model.nodesWereRemoved(parent, indices, new DefaultMutableTreeNode[] {node});
                         }
                     });
                     if (path != null) {
@@ -314,7 +331,7 @@ public class MainWindow extends JFrame {
         Action actionSignout = new AbstractAction("Sign out") {
             public void actionPerformed(ActionEvent e) {
                 dispose();
-                new LoginWindow(); //TODO change
+                new LoginWindow();
             }
         };
         item = mFile.add(actionSignout);
