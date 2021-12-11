@@ -17,6 +17,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MainWindow extends JFrame {
     private JTree tree1;
@@ -26,9 +27,9 @@ public class MainWindow extends JFrame {
     private JPanel coursePanel;
     private User user;
 
-    public MainWindow(User user) {
+    public MainWindow(User u) {
         super("Program");
-        this.user = user;
+        this.user = u;
         setPreferredSize(new Dimension(600, 600));
         setContentPane(panel1);
         pack();
@@ -41,7 +42,7 @@ public class MainWindow extends JFrame {
         coursePanel.setVisible(false);
 
         DefaultListModel<Course> model = new DefaultListModel<>();
-        List<Course> courses = MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
+        List<Course> courses = user.isAdmin() ? MainApplication.getCourseDatabase().getAll() : MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
         for (Course course : courses) {
             model.addElement(course);
         }
@@ -68,13 +69,8 @@ public class MainWindow extends JFrame {
                 if (SwingUtilities.isRightMouseButton(e)) {
                     TreePath path = tree1.getPathForLocation(e.getX(), e.getY());
                     Course course = (Course) courseJList.getSelectedValue();
-                    if (user.isCourseCreator()) {
-                        if (!user.getEditableCourses().contains(course.getId()) || !user.isAdmin()) {
-                            return;
-                        }
-                    } else {
-                        if (!user.isAdmin())
-                            return;
+                    if (!user.getEditableCourses().contains(course.getId()) && !user.isAdmin()) {
+                        return;
                     }
 
                     JPopupMenu menu = new JPopupMenu();
@@ -101,10 +97,11 @@ public class MainWindow extends JFrame {
                             root = (DefaultMutableTreeNode) path.getLastPathComponent();
                             folder = nf;
                         }
+                        DefaultTreeModel model = ((DefaultTreeModel)tree1.getModel());
                         MainApplication.getCourseDatabase().save(course);
                         DefaultMutableTreeNode node = new DefaultMutableTreeNode(folder);
                         root.add(node);
-                        DefaultTreeModel model = ((DefaultTreeModel)tree1.getModel());
+                        tree1.expandPath(new TreePath(root));
                         model.nodesWereInserted(root, new int[] { model.getIndexOfChild(root, node) });
                     });
                     fileCreate.addActionListener(e1 -> {
@@ -127,10 +124,11 @@ public class MainWindow extends JFrame {
                             file = nf;
                             root = (DefaultMutableTreeNode) path.getLastPathComponent();
                         }
+                        DefaultTreeModel model = ((DefaultTreeModel)tree1.getModel());
                         MainApplication.getCourseDatabase().save(course);
                         DefaultMutableTreeNode node = new DefaultMutableTreeNode(file);
                         root.add(node);
-                        DefaultTreeModel model = ((DefaultTreeModel)tree1.getModel());
+                        tree1.expandPath(new TreePath(root));
                         model.nodesWereInserted(root, new int[] { model.getIndexOfChild(root, node) });
                     });
                     delete.addActionListener(e1 -> {
@@ -218,7 +216,7 @@ public class MainWindow extends JFrame {
                         itemCreate.addActionListener(e1 -> {
                             new CourseCreationWindow(user, () -> {
                                 DefaultListModel<Course> model = new DefaultListModel<>();
-                                List<Course> courses = MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
+                                List<Course> courses = user.isAdmin() ? MainApplication.getCourseDatabase().getAll() : MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
                                 for (Course course : courses) {
                                     model.addElement(course);
                                 }
@@ -228,8 +226,13 @@ public class MainWindow extends JFrame {
                         menu.add(itemCreate);
                         menu.show(courseJList, e.getPoint().x, e.getPoint().y);
                     } else {
+                        if(courseJList.getSelectedValue() == null)
+                            return;
                         if (user.getEditableCourses().contains(((Course) courseJList.getSelectedValue()).getId()) || user.isAdmin()) {
                             JMenuItem itemRemove = new JMenuItem("Remove course");
+                            JMenuItem addModerator = new JMenuItem("Add moderator...");
+                            JMenuItem removeModerator = new JMenuItem("Remove moderator...");
+                            JMenuItem changeDescription = new JMenuItem("Change description...");
                             JMenuItem addUsers = new JMenuItem("Add users...");
                             JMenuItem removeUsers = new JMenuItem("Remove users...");
                             itemRemove.addActionListener(e1 -> {
@@ -240,16 +243,46 @@ public class MainWindow extends JFrame {
                                     u.removeEditableCourse(course.getId());
                                     MainApplication.getUserDatabase().save(u);
                                 });
+                                removeFiles(MainApplication.getFileDatabase().getByIds(course.getFilesIds()));
                                 DefaultListModel<Course> m = new DefaultListModel<>();
-                                List<Course> courses1 = MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
+                                user = MainApplication.getUserDatabase().getById(user.getId());
+                                List<Course> courses1 = user.isAdmin() ? MainApplication.getCourseDatabase().getAll() : MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
                                 for (Course c : courses1) {
                                     m.addElement(c);
                                 }
                                 courseJList.setModel(m);
                             });
+                            changeDescription.addActionListener(e1 -> {
+                                String desc = JOptionPane.showInputDialog("New description name:");
+                                if(desc != null){
+                                    Course course = ((Course) courseJList.getSelectedValue());
+                                    course.setDescription(desc);
+                                    MainApplication.getCourseDatabase().save(course);
+                                    descriptionField.setText(course.getDescription());
+                                }
+                            });
+                            addModerator.addActionListener(e1 -> {
+                                List<User> users = MainApplication.getUserDatabase().getAll();
+                                users.removeIf(u -> !u.getAccessibleCourses().contains(((Course) courseJList.getSelectedValue()).getId())
+                                        || u.getEditableCourses().contains(((Course) courseJList.getSelectedValue()).getId())
+                                        || ((Course) courseJList.getSelectedValue()).getOwnerId() == u.getId()
+                                        || u.getId() == user.getId());
+                                new UserSelectWindow(users, users1 -> {
+                                    users1.forEach(u -> u.addEditableCourse(((Course) courseJList.getSelectedValue()).getId()));
+                                    MainApplication.getUserDatabase().save(users1);
+                                });
+                            });
+                            removeModerator.addActionListener(e1 -> {
+                                List<User> users = MainApplication.getUserDatabase().getAll();
+                                users.removeIf(u -> !u.getEditableCourses().contains(((Course) courseJList.getSelectedValue()).getId()) || ((Course) courseJList.getSelectedValue()).getOwnerId() == u.getId() || u.getId() == user.getId());
+                                new UserSelectWindow(users, users1 -> {
+                                    users1.forEach(u -> u.removeEditableCourse(((Course) courseJList.getSelectedValue()).getId()));
+                                    MainApplication.getUserDatabase().save(users1);
+                                });
+                            });
                             addUsers.addActionListener(e1 -> {
                                 List<User> users = MainApplication.getUserDatabase().getAll();
-                                users.removeIf(u -> u.getAccessibleCourses().contains(((Course) courseJList.getSelectedValue()).getId()) || u.getId() == user.getId());
+                                users.removeIf(u -> u.getAccessibleCourses().contains(((Course) courseJList.getSelectedValue()).getId()) || ((Course) courseJList.getSelectedValue()).getOwnerId() == u.getId() || u.getId() == user.getId());
                                 new UserSelectWindow(users, users1 -> {
                                     users1.forEach(u -> u.addAccessibleCourse(((Course) courseJList.getSelectedValue()).getId()));
                                     MainApplication.getUserDatabase().save(users1);
@@ -257,21 +290,41 @@ public class MainWindow extends JFrame {
                             });
                             removeUsers.addActionListener(e1 -> {
                                 List<User> users = MainApplication.getUserDatabase().getAll();
-                                users.removeIf(u -> !u.getAccessibleCourses().contains(((Course) courseJList.getSelectedValue()).getId()) || u.getId() == user.getId());
+                                users.removeIf(u -> !u.getAccessibleCourses().contains(((Course) courseJList.getSelectedValue()).getId()) || ((Course) courseJList.getSelectedValue()).getOwnerId() == u.getId() || u.getId() == user.getId());
                                 new UserSelectWindow(users, users1 -> {
-                                    users1.forEach(u -> u.removeAccessibleCourse(((Course) courseJList.getSelectedValue()).getId()));
+                                    users1.forEach(u -> {
+                                        u.removeAccessibleCourse(((Course) courseJList.getSelectedValue()).getId());
+                                        u.removeEditableCourse(((Course) courseJList.getSelectedValue()).getId());
+                                    });
                                     MainApplication.getUserDatabase().save(users1);
                                 });
                             });
-                            menu.add(addUsers);
-                            menu.add(removeUsers);
-                            menu.add(itemRemove);
+                            if(user.isAdmin() || ((Course) courseJList.getSelectedValue()).getOwnerId() == user.getId() || user.getEditableCourses().contains(((Course) courseJList.getSelectedValue()).getId())) {
+                                menu.add(addUsers);
+                                menu.add(removeUsers);
+                                menu.add(changeDescription);
+                            }
+                            if(user.isAdmin() || ((Course) courseJList.getSelectedValue()).getOwnerId() == user.getId()) {
+                                menu.add(addModerator);
+                                menu.add(removeModerator);
+                                menu.add(itemRemove);
+                            }
                             menu.show(courseJList, e.getPoint().x, e.getPoint().y);
                         }
                     }
                 }
             }
         });
+    }
+
+    private void removeFiles(List<File> files) {
+        files.forEach(f -> {
+            if(f.isFolder()){
+                removeFiles(MainApplication.getFileDatabase().getByIds(((Folder) f).getFiles()));
+            }
+            MainApplication.getFileDatabase().remove(f);
+        });
+
     }
 
     private void removeFile(Folder parent, File file) {
@@ -310,12 +363,40 @@ public class MainWindow extends JFrame {
         JMenu mFile = new JMenu("User");
         mFile.setMnemonic('f');
         JMenuItem item;
+        if(user.isAdmin()){
+            Action actionAddCreator = new AbstractAction("Add course creator...") {
+                public void actionPerformed(ActionEvent e) {
+                    List<User> users = MainApplication.getUserDatabase().getAll().stream()
+                            .filter(u -> !u.isCourseCreator() && !u.isAdmin())
+                            .collect(Collectors.toList());
+                    new UserSelectWindow(users, selectedUsers -> {
+                        selectedUsers.forEach(u -> u.setCourseCreator(true));
+                        MainApplication.getUserDatabase().save(selectedUsers);
+                    });
+                }
+            };
+            item = mFile.add(actionAddCreator);
+            mFile.add(item);
+            Action actionRemoveCreator = new AbstractAction("Remove course creator...") {
+                public void actionPerformed(ActionEvent e) {
+                    List<User> users = MainApplication.getUserDatabase().getAll().stream()
+                            .filter(u -> u.isCourseCreator() && !u.isAdmin())
+                            .collect(Collectors.toList());
+                    new UserSelectWindow(users, selectedUsers -> {
+                        selectedUsers.forEach(u -> u.setCourseCreator(false));
+                        MainApplication.getUserDatabase().save(selectedUsers);
+                    });
+                }
+            };
+            item = mFile.add(actionRemoveCreator);
+            mFile.add(item);
+        }
         if (user.isAdmin() || user.isCourseCreator()) {
             Action actionCreate = new AbstractAction("Create course...") {
                 public void actionPerformed(ActionEvent e) {
                     new CourseCreationWindow(user, () -> {
                         DefaultListModel<Course> model = new DefaultListModel<>();
-                        List<Course> courses = MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
+                        List<Course> courses = user.isAdmin() ? MainApplication.getCourseDatabase().getAll() : MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
                         for (Course course : courses) {
                             model.addElement(course);
                         }

@@ -9,20 +9,23 @@ public class Course extends DatabaseSavable {
 
     private String name;
     private String description;
+    private int ownerId;
     private SerializableList fileIds;
 
-    public Course(int id, String name, String description, SerializableList fileIds){
+    public Course(int id, int ownerId, String name, String description, SerializableList fileIds){
         super(id);
+        this.ownerId = ownerId;
         this.name = name;
         this.description = description;
         this.fileIds = Objects.requireNonNullElseGet(fileIds, SerializableList::new);;
     }
 
-    public Course(String name, String description){
-        this(name, description, null);
+    public Course(int ownerId, String name, String description){
+        this(ownerId, name, description, null);
     }
 
-    public Course(String name, String description, SerializableList fileIds){
+    public Course(int ownerId, String name, String description, SerializableList fileIds){
+        this.ownerId = ownerId;
         this.name = name;
         this.description = description;
         this.fileIds = Objects.requireNonNullElseGet(fileIds, SerializableList::new);;
@@ -44,6 +47,14 @@ public class Course extends DatabaseSavable {
     public void setDescription(String description){
         this.description = description;
         setDirty();
+    }
+
+    public int getOwnerId(){
+        return ownerId;
+    }
+
+    public void setOwnerId(int ownerId){
+        this.ownerId = ownerId;
     }
 
     public String getName() {

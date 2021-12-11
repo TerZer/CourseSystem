@@ -34,7 +34,7 @@ public class CourseCreationWindow extends JFrame {
                 JOptionPane.showMessageDialog(null, "Course description field cannot be empty!", "Course creator", JOptionPane.ERROR_MESSAGE);
                 return;
             }
-            Course course = new Course(courseNameField.getText(), courseDescriptionField.getText());
+            Course course = new Course(user.getId(), courseNameField.getText(), courseDescriptionField.getText());
             MainApplication.getCourseDatabase().save(course);
             user.addAccessibleCourse(course.getId());
             user.addEditableCourse(course.getId());

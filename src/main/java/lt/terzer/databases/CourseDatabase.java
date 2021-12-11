@@ -37,8 +37,8 @@ public class CourseDatabase extends AbstractDatabase<Course> {
         if(pair.get2nd() != null) {
             try {
                 while (pair.get2nd().next()) {
-                    list.add(new Course(pair.get2nd().getInt(1), pair.get2nd().getString(2),
-                            pair.get2nd().getString(3), SerializableList.deserialize(pair.get2nd().getString(4))));
+                    list.add(new Course(pair.get2nd().getInt(1), pair.get2nd().getInt(2), pair.get2nd().getString(3),
+                            pair.get2nd().getString(4), SerializableList.deserialize(pair.get2nd().getString(5))));
                 }
             } catch (SQLException e) {
                 System.out.println("Could not retrieve data from the database " + e.getMessage());
@@ -74,6 +74,7 @@ public class CourseDatabase extends AbstractDatabase<Course> {
                 statement = connection.createStatement();
                 String sql = "CREATE TABLE IF NOT EXISTS "+table+" " +
                         "(id INT AUTO_INCREMENT PRIMARY KEY," +
+                        " owner_id INT NOT NULL, " +
                         " name TEXT NOT NULL, " +
                         " description TEXT, " +
                         " files TEXT)";
@@ -103,8 +104,9 @@ public class CourseDatabase extends AbstractDatabase<Course> {
                 Statement stmt = connection.createStatement();
                 if(course.getId() == -1){
                     stmt.executeUpdate(
-                            "INSERT INTO "+table+" (name, description, files) "
+                            "INSERT INTO "+table+" (owner_id, name, description, files) "
                                     + "values ("
+                                    + "'"+course.getOwnerId()+"',"
                                     + "'"+course.getName()+"',"
                                     + "'"+course.getDescription()+"',"
                                     + "'"+course.getFilesIds().serialize()+"'"
@@ -113,9 +115,10 @@ public class CourseDatabase extends AbstractDatabase<Course> {
                 }
                 else{
                     stmt.executeUpdate(
-                            "INSERT INTO "+table+" (id, name, description, files) "
+                            "INSERT INTO "+table+" (id, owner_id, name, description, files) "
                                     + "values ("
                                     + "'"+course.getId()+"',"
+                                    + "'"+course.getOwnerId()+"',"
                                     + "'"+course.getName()+"',"
                                     + "'"+course.getDescription()+"',"
                                     + "'"+course.getFilesIds().serialize()+"'"
