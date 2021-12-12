@@ -19,6 +19,7 @@ import java.awt.event.MouseEvent;
 import java.util.List;
 import java.util.stream.Collectors;
 
+//TODO butu cool isskaidyti sita klase
 public class MainWindow extends JFrame {
     private JTree tree1;
     private JPanel panel1;
@@ -40,21 +41,43 @@ public class MainWindow extends JFrame {
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setVisible(true);
 
+        tree1.setVisible(false);
+        enrollButton.setVisible(false);
         coursePanel.setVisible(false);
 
         DefaultListModel<Course> model = new DefaultListModel<>();
-        List<Course> courses = user.isAdmin() ? MainApplication.getCourseDatabase().getAll() : MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
+        List<Course> courses = MainApplication.getCourseDatabase().getAll();
         for (Course course : courses) {
             model.addElement(course);
         }
         courseJList.setModel(model);
         tree1.setCellRenderer(new FileTreeCellRenderer());
 
+
+        enrollButton.addActionListener(e -> {
+            if (courseJList.getSelectedValue() != null) {
+                Course course = ((Course) courseJList.getSelectedValue());
+                user.addAccessibleCourse(course.getId());
+                MainApplication.getUserDatabase().save(user);
+                enrollButton.setVisible(false);
+                tree1.setVisible(true);
+                tree1.setModel(createNodes(course));
+            }
+        });
+
         courseJList.addListSelectionListener(e -> {
             if (courseJList.getSelectedValue() != null) {
                 coursePanel.setVisible(true);
-                descriptionField.setText(((Course) courseJList.getSelectedValue()).getDescription());
-                tree1.setModel(createNodes((Course) courseJList.getSelectedValue()));
+                Course course = ((Course) courseJList.getSelectedValue());
+                descriptionField.setText(course.getDescription());
+                if (user.isAdmin() || user.getAccessibleCourses().contains(course.getId()) || user.getEditableCourses().contains(course.getId()) || course.getOwnerId() == user.getId()) {
+                    tree1.setVisible(true);
+                    enrollButton.setVisible(false);
+                    tree1.setModel(createNodes(course));
+                } else {
+                    enrollButton.setVisible(true);
+                    tree1.setVisible(false);
+                }
             } else {
                 coursePanel.setVisible(false);
                 tree1.setModel(null);
@@ -139,7 +162,7 @@ public class MainWindow extends JFrame {
                             DefaultMutableTreeNode parent = (DefaultMutableTreeNode) node.getParent();
                             File file = (File) node.getUserObject();
                             Folder folder = (Folder) parent.getUserObject();
-                            removeFile(folder, file);
+                            removeFile(course, folder, file);
                             DefaultTreeModel model = ((DefaultTreeModel) tree1.getModel());
                             int[] indices = new int[]{model.getIndexOfChild(parent, node)};
                             parent.remove(node);
@@ -226,7 +249,7 @@ public class MainWindow extends JFrame {
                         itemCreate.addActionListener(e1 -> {
                             new CourseCreationWindow(user, () -> {
                                 DefaultListModel<Course> model = new DefaultListModel<>();
-                                List<Course> courses = user.isAdmin() ? MainApplication.getCourseDatabase().getAll() : MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
+                                List<Course> courses = MainApplication.getCourseDatabase().getAll();
                                 for (Course course : courses) {
                                     model.addElement(course);
                                 }
@@ -256,7 +279,7 @@ public class MainWindow extends JFrame {
                                 removeFiles(MainApplication.getFileDatabase().getByIds(course.getFilesIds()));
                                 DefaultListModel<Course> m = new DefaultListModel<>();
                                 user = MainApplication.getUserDatabase().getById(user.getId());
-                                List<Course> courses1 = user.isAdmin() ? MainApplication.getCourseDatabase().getAll() : MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
+                                List<Course> courses1 = MainApplication.getCourseDatabase().getAll();
                                 for (Course c : courses1) {
                                     m.addElement(c);
                                 }
@@ -320,6 +343,18 @@ public class MainWindow extends JFrame {
                                 menu.add(itemRemove);
                             }
                             menu.show(courseJList, e.getPoint().x, e.getPoint().y);
+                        } else {
+                            Course course = (Course) courseJList.getSelectedValue();
+                            if (user.getAccessibleCourses().contains(course.getId()) && course.getOwnerId() != user.getId()) {
+                                JMenuItem itemLeave = new JMenuItem("Leave course");
+                                itemLeave.addActionListener(e1 -> {
+                                    user.removeAccessibleCourse(course.getId());
+                                    MainApplication.getUserDatabase().save(user);
+                                    courseJList.setSelectedValue(null, false);
+                                });
+                                menu.add(itemLeave);
+                                menu.show(courseJList, e.getPoint().x, e.getPoint().y);
+                            }
                         }
                     }
                 }
@@ -337,15 +372,17 @@ public class MainWindow extends JFrame {
 
     }
 
-    private void removeFile(Folder parent, File file) {
+    private void removeFile(Course course, Folder parent, File file) {
         if (file.isFolder()) {
             for (File f : MainApplication.getFileDatabase().getByIds(((Folder) file).getFiles())) {
-                removeFile((Folder) file, f);
+                removeFile(course, (Folder) file, f);
             }
         }
         if (parent != null) {
             parent.removeFile(file.getId());
         }
+        course.removeFileId(file.getId());
+        MainApplication.getCourseDatabase().save(course);
         MainApplication.getFileDatabase().remove(file);
     }
 
@@ -406,7 +443,7 @@ public class MainWindow extends JFrame {
                 public void actionPerformed(ActionEvent e) {
                     new CourseCreationWindow(user, () -> {
                         DefaultListModel<Course> model = new DefaultListModel<>();
-                        List<Course> courses = user.isAdmin() ? MainApplication.getCourseDatabase().getAll() : MainApplication.getCourseDatabase().getByIds(user.getAccessibleCourses());
+                        List<Course> courses = MainApplication.getCourseDatabase().getAll();
                         for (Course course : courses) {
                             model.addElement(course);
                         }
@@ -461,12 +498,10 @@ public class MainWindow extends JFrame {
         courseJList.setSelectionMode(0);
         panel1.add(courseJList, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(50, 50), null, 0, false));
         coursePanel = new JPanel();
-        coursePanel.setLayout(new GridLayoutManager(4, 1, new Insets(0, 0, 0, 0), -1, -1));
+        coursePanel.setLayout(new GridLayoutManager(5, 1, new Insets(0, 0, 0, 0), -1, -1));
         coursePanel.setBackground(new Color(-1));
         coursePanel.setForeground(new Color(-1));
         panel1.add(coursePanel, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
-        tree1 = new JTree();
-        coursePanel.add(tree1, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(150, 50), null, 0, false));
         final JLabel label1 = new JLabel();
         label1.setText("Description:");
         coursePanel.add(label1, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
@@ -479,6 +514,12 @@ public class MainWindow extends JFrame {
         final JLabel label2 = new JLabel();
         label2.setText(" ");
         panel2.add(label2, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_WEST, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_FIXED, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        enrollButton = new JButton();
+        enrollButton.setText("Enroll");
+        coursePanel.add(enrollButton, new GridConstraints(3, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_NONE, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
+        tree1 = new JTree();
+        tree1.setEnabled(true);
+        coursePanel.add(tree1, new GridConstraints(4, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_WANT_GROW, GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(150, 50), null, 0, false));
     }
 
     /**

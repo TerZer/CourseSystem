@@ -69,4 +69,8 @@ public class Course extends DatabaseSavable {
     public String toString(){
         return name;
     }
+
+    public void removeFileId(Integer id) {
+        fileIds.remove(id);
+    }
 }
