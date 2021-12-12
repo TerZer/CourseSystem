@@ -25,6 +25,7 @@ public class MainWindow extends JFrame {
     private JList courseJList;
     private JLabel descriptionField;
     private JPanel coursePanel;
+    private JButton enrollButton;
     private User user;
 
     public MainWindow(User u) {
@@ -77,6 +78,7 @@ public class MainWindow extends JFrame {
                     JMenuItem folderCreate = new JMenuItem("Add folder...");
                     JMenuItem fileCreate = new JMenuItem("Add file...");
                     JMenuItem delete = new JMenuItem("Delete");
+                    JMenuItem information = new JMenuItem("Info");
                     folderCreate.addActionListener(e1 -> {
                         String name = JOptionPane.showInputDialog("Write name of a folder:");
                         if (name == null)
@@ -97,12 +99,12 @@ public class MainWindow extends JFrame {
                             root = (DefaultMutableTreeNode) path.getLastPathComponent();
                             folder = nf;
                         }
-                        DefaultTreeModel model = ((DefaultTreeModel)tree1.getModel());
+                        DefaultTreeModel model = ((DefaultTreeModel) tree1.getModel());
                         MainApplication.getCourseDatabase().save(course);
                         DefaultMutableTreeNode node = new DefaultMutableTreeNode(folder);
                         root.add(node);
                         tree1.expandPath(new TreePath(root));
-                        model.nodesWereInserted(root, new int[] { model.getIndexOfChild(root, node) });
+                        model.nodesWereInserted(root, new int[]{model.getIndexOfChild(root, node)});
                     });
                     fileCreate.addActionListener(e1 -> {
                         String name = JOptionPane.showInputDialog("Write name of a file:");
@@ -124,12 +126,12 @@ public class MainWindow extends JFrame {
                             file = nf;
                             root = (DefaultMutableTreeNode) path.getLastPathComponent();
                         }
-                        DefaultTreeModel model = ((DefaultTreeModel)tree1.getModel());
+                        DefaultTreeModel model = ((DefaultTreeModel) tree1.getModel());
                         MainApplication.getCourseDatabase().save(course);
                         DefaultMutableTreeNode node = new DefaultMutableTreeNode(file);
                         root.add(node);
                         tree1.expandPath(new TreePath(root));
-                        model.nodesWereInserted(root, new int[] { model.getIndexOfChild(root, node) });
+                        model.nodesWereInserted(root, new int[]{model.getIndexOfChild(root, node)});
                     });
                     delete.addActionListener(e1 -> {
                         if (path != null) {
@@ -138,10 +140,17 @@ public class MainWindow extends JFrame {
                             File file = (File) node.getUserObject();
                             Folder folder = (Folder) parent.getUserObject();
                             removeFile(folder, file);
-                            DefaultTreeModel model = ((DefaultTreeModel)tree1.getModel());
-                            int[] indices = new int[] { model.getIndexOfChild(parent, node) };
+                            DefaultTreeModel model = ((DefaultTreeModel) tree1.getModel());
+                            int[] indices = new int[]{model.getIndexOfChild(parent, node)};
                             parent.remove(node);
-                            model.nodesWereRemoved(parent, indices, new DefaultMutableTreeNode[] {node});
+                            model.nodesWereRemoved(parent, indices, new DefaultMutableTreeNode[]{node});
+                        }
+                    });
+                    information.addActionListener(e1 -> {
+                        if (path != null) {
+                            DefaultMutableTreeNode node = (DefaultMutableTreeNode) path.getLastPathComponent();
+                            File file = (File) node.getUserObject();
+                            new FileInformationWindow(file);
                         }
                     });
                     if (path != null) {
@@ -151,6 +160,7 @@ public class MainWindow extends JFrame {
                             menu.add(fileCreate);
                         }
                         menu.add(delete);
+                        menu.add(information);
                     } else {
                         menu.add(folderCreate);
                         menu.add(fileCreate);
@@ -226,7 +236,7 @@ public class MainWindow extends JFrame {
                         menu.add(itemCreate);
                         menu.show(courseJList, e.getPoint().x, e.getPoint().y);
                     } else {
-                        if(courseJList.getSelectedValue() == null)
+                        if (courseJList.getSelectedValue() == null)
                             return;
                         if (user.getEditableCourses().contains(((Course) courseJList.getSelectedValue()).getId()) || user.isAdmin()) {
                             JMenuItem itemRemove = new JMenuItem("Remove course");
@@ -254,7 +264,7 @@ public class MainWindow extends JFrame {
                             });
                             changeDescription.addActionListener(e1 -> {
                                 String desc = JOptionPane.showInputDialog("New description name:");
-                                if(desc != null){
+                                if (desc != null) {
                                     Course course = ((Course) courseJList.getSelectedValue());
                                     course.setDescription(desc);
                                     MainApplication.getCourseDatabase().save(course);
@@ -299,12 +309,12 @@ public class MainWindow extends JFrame {
                                     MainApplication.getUserDatabase().save(users1);
                                 });
                             });
-                            if(user.isAdmin() || ((Course) courseJList.getSelectedValue()).getOwnerId() == user.getId() || user.getEditableCourses().contains(((Course) courseJList.getSelectedValue()).getId())) {
+                            if (user.isAdmin() || ((Course) courseJList.getSelectedValue()).getOwnerId() == user.getId() || user.getEditableCourses().contains(((Course) courseJList.getSelectedValue()).getId())) {
                                 menu.add(addUsers);
                                 menu.add(removeUsers);
                                 menu.add(changeDescription);
                             }
-                            if(user.isAdmin() || ((Course) courseJList.getSelectedValue()).getOwnerId() == user.getId()) {
+                            if (user.isAdmin() || ((Course) courseJList.getSelectedValue()).getOwnerId() == user.getId()) {
                                 menu.add(addModerator);
                                 menu.add(removeModerator);
                                 menu.add(itemRemove);
@@ -319,7 +329,7 @@ public class MainWindow extends JFrame {
 
     private void removeFiles(List<File> files) {
         files.forEach(f -> {
-            if(f.isFolder()){
+            if (f.isFolder()) {
                 removeFiles(MainApplication.getFileDatabase().getByIds(((Folder) f).getFiles()));
             }
             MainApplication.getFileDatabase().remove(f);
@@ -363,7 +373,7 @@ public class MainWindow extends JFrame {
         JMenu mFile = new JMenu("User");
         mFile.setMnemonic('f');
         JMenuItem item;
-        if(user.isAdmin()){
+        if (user.isAdmin()) {
             Action actionAddCreator = new AbstractAction("Add course creator...") {
                 public void actionPerformed(ActionEvent e) {
                     List<User> users = MainApplication.getUserDatabase().getAll().stream()

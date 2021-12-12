@@ -9,11 +9,16 @@ import lt.terzer.sql.data.SerializableList;
 import oracle.ucp.util.Pair;
 
 import java.sql.*;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class FileDatabase extends AbstractDatabase<File> {
+
+    private static SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
 
     public FileDatabase(String url, String database, String table, String username) {
         super(url, database, table, username);
@@ -37,10 +42,18 @@ public class FileDatabase extends AbstractDatabase<File> {
             try {
                 while (pair.get2nd().next()) {
                     if(pair.get2nd().getBoolean(3)) {
-                        list.add(new Folder(pair.get2nd().getInt(1), pair.get2nd().getString(2), SerializableList.deserialize(pair.get2nd().getString(4))));
+                        try {
+                            list.add(new Folder(pair.get2nd().getInt(1), pair.get2nd().getString(2), SerializableList.deserialize(pair.get2nd().getString(4)), format.parse(pair.get2nd().getString(5))));
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                        }
                     }
                     else{
-                        list.add(new File(pair.get2nd().getInt(1), pair.get2nd().getString(2)));
+                        try {
+                            list.add(new File(pair.get2nd().getInt(1), pair.get2nd().getString(2), format.parse(pair.get2nd().getString(5))));
+                        } catch (ParseException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
             } catch (SQLException e) {
@@ -78,7 +91,8 @@ public class FileDatabase extends AbstractDatabase<File> {
                         "(id INT AUTO_INCREMENT PRIMARY KEY," +
                         " name TEXT NOT NULL, " +
                         " folder BOOL NOT NULL, " +
-                        " files TEXT)";
+                        " files TEXT, " +
+                        " creation_date DATETIME)";
                 statement.executeUpdate(sql);
                 return true;
             }
@@ -105,27 +119,30 @@ public class FileDatabase extends AbstractDatabase<File> {
                 Statement stmt = connection.createStatement();
                 if(file.getId() == -1){
                     stmt.executeUpdate(
-                            "INSERT INTO "+table+" (name, folder, files) "
+                            "INSERT INTO "+table+" (name, folder, files, creation_date) "
                                     + "values ("
                                     + "'"+file.getName()+"',"
                                     + ""+file.isFolder()+","
-                                    + "'"+(file.isFolder() ? ((Folder) file).getFiles().serialize() : null)+"'"
+                                    + "'"+(file.isFolder() ? ((Folder) file).getFiles().serialize() : null)+"',"
+                                    + "'"+format.format(file.getDate())+"'"
                                     + ");",
                             Statement.RETURN_GENERATED_KEYS);
                 }
                 else{
                     stmt.executeUpdate(
-                            "INSERT INTO "+table+" (id, name, folder, files) "
+                            "INSERT INTO "+table+" (id, name, folder, files, creation_date) "
                                     + "values ("
                                     + "'"+file.getId()+"',"
                                     + "'"+file.getName()+"',"
                                     + ""+file.isFolder()+","
-                                    + "'"+(file.isFolder() ? ((Folder) file).getFiles().serialize() : null)+"'"
+                                    + "'"+(file.isFolder() ? ((Folder) file).getFiles().serialize() : null)+"',"
+                                    + "'"+format.format(file.getDate())+"'"
                                     + ") ON DUPLICATE KEY UPDATE"
                                     + "  id = VALUES(id),"
                                     + "  name = VALUES(name),"
                                     + "  folder = VALUES(folder),"
-                                    + "  files = VALUES(files);",
+                                    + "  files = VALUES(files),"
+                                    + "  creation_date = VALUES(creation_date);",
                             Statement.RETURN_GENERATED_KEYS);
                 }
                 ResultSet rs = stmt.getGeneratedKeys();

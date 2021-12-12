@@ -2,12 +2,14 @@ package lt.terzer.files;
 
 import lt.terzer.sql.data.SerializableList;
 
+import java.util.Date;
+
 public class Folder extends File {
 
     private SerializableList files = new SerializableList();
 
-    public Folder(int id, String name, SerializableList files) {
-        super(id, name);
+    public Folder(int id, String name, SerializableList files, Date date) {
+        super(id, name, date);
         this.files = files;
     }
 
