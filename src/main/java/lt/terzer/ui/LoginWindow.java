@@ -12,6 +12,9 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class LoginWindow extends JFrame {
     private JPanel panel1;
@@ -56,9 +59,18 @@ public class LoginWindow extends JFrame {
             return;
         }
 
+        String shaPassword = "";
+        try {
+            MessageDigest m = MessageDigest.getInstance("SHA-256");
+            byte[] encodedhash = m.digest(password.getBytes(StandardCharsets.UTF_8));
+            shaPassword = bytesToHex(encodedhash);
+        } catch (NoSuchAlgorithmException ex) {
+            ex.printStackTrace();
+        }
+
         User user = MainApplication.getUserDatabase().getByUsername(usernameField.getText());
         if (user != null) {
-            if (user.getPassword().equals(password)) {
+            if (user.getPassword().equals(shaPassword)) {
                 new MainWindow(user);
                 dispose();
             } else {
@@ -67,6 +79,18 @@ public class LoginWindow extends JFrame {
         } else {
             JOptionPane.showMessageDialog(null, "Username does not exists!", "Login", JOptionPane.ERROR_MESSAGE);
         }
+    }
+
+    private static String bytesToHex(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (int i = 0; i < hash.length; i++) {
+            String hex = Integer.toHexString(0xff & hash[i]);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 
     {

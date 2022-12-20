@@ -9,6 +9,9 @@ import lt.terzer.user.User;
 
 import javax.swing.*;
 import java.awt.*;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 public class RegisterWindow extends JFrame {
     private JTextField usernameField;
@@ -22,55 +25,43 @@ public class RegisterWindow extends JFrame {
     private JButton registerButton;
     private JPasswordField adminField;
 
+    private static final String REGISTER = "Register";
+
     public RegisterWindow() {
-        super("Register");
+        super(REGISTER);
         setPreferredSize(new Dimension(400, 500));
         setContentPane(panel1);
         pack();
         setLocationRelativeTo(null);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
 
         registerButton.addActionListener(e -> {
-            if (usernameField.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(null, "Username field cannot be empty!", "Register", JOptionPane.ERROR_MESSAGE);
+            if(!isDataCorrect()){
                 return;
             }
-            if (nameField.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(null, "Name field cannot be empty!", "Register", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            if (surnameField.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(null, "Surname field cannot be empty!", "Register", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            if (contactInfoField.getText().isEmpty()) {
-                JOptionPane.showMessageDialog(null, "Contact information field cannot be empty!", "Register", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
-            if (companyCheckBox.isSelected()) {
-                if (companyNameField.getText().isEmpty()) {
-                    JOptionPane.showMessageDialog(null, "Company name field cannot be empty!", "Register", JOptionPane.ERROR_MESSAGE);
-                    return;
-                }
-            }
+
             String password = new String(passwordField.getPassword());
-            if (password.trim().isEmpty()) {
-                JOptionPane.showMessageDialog(null, "Password field cannot be empty!", "Register", JOptionPane.ERROR_MESSAGE);
-                return;
+            String shaPassword = "";
+            try {
+                MessageDigest m = MessageDigest.getInstance("SHA-256");
+                byte[] encodedhash = m.digest(password.getBytes(StandardCharsets.UTF_8));
+                shaPassword = bytesToHex(encodedhash);
+            } catch (NoSuchAlgorithmException ex) {
+                ex.printStackTrace();
             }
 
             String admin = new String(adminField.getPassword());
 
             User user = MainApplication.getUserDatabase().getByUsername(usernameField.getText());
             if (user != null) {
-                JOptionPane.showMessageDialog(null, "Username already taken!", "Register", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Username already taken!", REGISTER, JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
             if (companyCheckBox.isSelected()) {
-                MainApplication.getUserDatabase().save(new Company(companyNameField.getText(), usernameField.getText(), nameField.getText(), surnameField.getText(), contactInfoField.getText(), password, false, admin.equalsIgnoreCase("pass123")));
+                MainApplication.getUserDatabase().save(new Company(companyNameField.getText(), usernameField.getText(), nameField.getText(), surnameField.getText(), contactInfoField.getText(), shaPassword, false, admin.equalsIgnoreCase("pass123")));
             } else {
-                MainApplication.getUserDatabase().save(new User(usernameField.getText(), nameField.getText(), surnameField.getText(), contactInfoField.getText(), password, false, admin.equalsIgnoreCase("pass123")));
+                MainApplication.getUserDatabase().save(new User(usernameField.getText(), nameField.getText(), surnameField.getText(), contactInfoField.getText(), shaPassword, false, admin.equalsIgnoreCase("pass123")));
             }
             new LoginWindow();
             dispose();
@@ -78,6 +69,53 @@ public class RegisterWindow extends JFrame {
 
         setResizable(false);
         setVisible(true);
+    }
+
+    private boolean isDataCorrect(){
+        if (usernameField.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Username field cannot be empty!", REGISTER, JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        if (nameField.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Name field cannot be empty!", REGISTER, JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        if (surnameField.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Surname field cannot be empty!", REGISTER, JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        if (contactInfoField.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Contact information field cannot be empty!", REGISTER, JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        if (companyCheckBox.isSelected() && companyNameField.getText().isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Company name field cannot be empty!", REGISTER, JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+        String password = new String(passwordField.getPassword());
+        if (password.trim().isEmpty()) {
+            JOptionPane.showMessageDialog(null, "Password field cannot be empty!", REGISTER, JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
+        if (password.trim().length() < 8) {
+            JOptionPane.showMessageDialog(null, "Password should be at least 8 symbols!", REGISTER, JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
+        return true;
+    }
+
+    private static String bytesToHex(byte[] hash) {
+        StringBuilder hexString = new StringBuilder(2 * hash.length);
+        for (int i = 0; i < hash.length; i++) {
+            String hex = Integer.toHexString(0xff & hash[i]);
+            if (hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 
     {
@@ -157,7 +195,7 @@ public class RegisterWindow extends JFrame {
         panel2.setLayout(new GridLayoutManager(1, 3, new Insets(0, 0, 0, 0), -1, -1));
         panel1.add(panel2, new GridConstraints(24, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, null, null, null, 0, false));
         registerButton = new JButton();
-        registerButton.setText("Register");
+        registerButton.setText(REGISTER);
         panel2.add(registerButton, new GridConstraints(0, 1, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_CAN_SHRINK | GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_FIXED, null, null, null, 0, false));
         final Spacer spacer12 = new Spacer();
         panel2.add(spacer12, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_HORIZONTAL, GridConstraints.SIZEPOLICY_WANT_GROW, 1, null, null, null, 0, false));
