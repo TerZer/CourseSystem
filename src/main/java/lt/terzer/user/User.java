@@ -17,6 +17,11 @@ public class User extends DatabaseSavable {
     private boolean courseCreator;
     private boolean admin;
 
+    public User(String username, String password){
+        this.username = username;
+        this.password = password;
+    }
+
     public User(int id, String username, String name, String surname, String contactInformation, String password
             , boolean courseCreator, boolean admin, SerializableList editableCourses, SerializableList accessibleCourses) {
         super(id);

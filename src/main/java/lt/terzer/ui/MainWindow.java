@@ -196,7 +196,7 @@ public class MainWindow extends JFrame {
     private void $$$setupUI$$$() {
         panel1 = new JPanel();
         panel1.setLayout(new GridLayoutManager(1, 2, new Insets(0, 0, 0, 0), -1, -1));
-        courseJList = new JList<>();
+        courseJList = new JList();
         courseJList.setSelectionMode(0);
         panel1.add(courseJList, new GridConstraints(0, 0, 1, 1, GridConstraints.ANCHOR_CENTER, GridConstraints.FILL_BOTH, GridConstraints.SIZEPOLICY_CAN_GROW, GridConstraints.SIZEPOLICY_WANT_GROW, null, new Dimension(50, 50), null, 0, false));
         coursePanel = new JPanel();
@@ -230,4 +230,5 @@ public class MainWindow extends JFrame {
     public JComponent $$$getRootComponent$$$() {
         return panel1;
     }
+
 }
